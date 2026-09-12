@@ -1,0 +1,604 @@
+<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Advanced Protection - Standalone</title><style>
+:root{--text:#f8fafc;--muted:#94a3b8;--border:rgba(255,255,255,.08);--bg-main:#090d16}
+*{box-sizing:border-box;margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+html,body{min-height:100%;background:var(--bg-main);color:var(--text)}
+body{padding:1rem;min-height:100vh}
+input,button{font:inherit}
+.auth-overlay{position:fixed;inset:0;background:rgba(4,7,14,.96);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);z-index:9999;display:flex;align-items:center;justify-content:center;padding:1rem;overflow-y:auto}
+.auth-card{width:100%;max-width:430px;background:#0e1626;border:1px solid rgba(59,130,246,.35);border-radius:1.35rem;padding:1.35rem 1.4rem;display:flex;flex-direction:column;gap:.85rem;box-shadow:0 25px 60px rgba(0,0,0,.75),0 0 35px rgba(59,130,246,.2);max-height:calc(100vh - 2rem);overflow-y:auto;scrollbar-width:thin;scrollbar-color:rgba(255,255,255,.15) transparent}
+.auth-title-row{text-align:center;display:flex;flex-direction:column;align-items:center;gap:.25rem}.auth-logo-badge{width:46px;height:46px;border-radius:.9rem;background:linear-gradient(135deg,#3b82f6 0%,#1d4ed8 100%);display:flex;align-items:center;justify-content:center;font-size:1.4rem;box-shadow:0 6px 18px rgba(59,130,246,.4)}.auth-title{font-size:1.2rem;font-weight:800;color:#f8fafc}.auth-subtitle{font-size:.74rem;color:var(--muted);font-weight:600}.auth-tabs{display:flex;background:rgba(0,0,0,.3);border-radius:.75rem;padding:.25rem;border:1px solid var(--border)}.auth-tab{flex:1;padding:.55rem;font-size:.8rem;font-weight:700;background:transparent;border:none;color:var(--muted);cursor:pointer;border-radius:.55rem}.auth-tab.active{background:#3b82f6;color:#fff;box-shadow:0 2px 10px rgba(59,130,246,.35)}.auth-pane{display:none;flex-direction:column;gap:.75rem}.auth-pane.active{display:flex}.auth-field label{display:block;font-size:.7rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.25rem}.auth-field input{display:block;width:100%;font-size:.92rem;background:#090d16!important;border:1px solid var(--border);padding:.7rem .8rem;border-radius:.5rem;color:#f8fafc!important;caret-color:#60a5fa;outline:none;opacity:1;-webkit-text-fill-color:#f8fafc}.auth-field input::placeholder{color:#64748b;opacity:1}.auth-field input:focus{border-color:#3b82f6;box-shadow:0 0 0 3px rgba(59,130,246,.2)}.auth-error{color:#ef4444;font-size:.75rem;font-weight:700;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);padding:.5rem .7rem;border-radius:.5rem;display:none;text-align:center}.auth-error.show{display:block}.auth-links{display:flex;justify-content:space-between;align-items:center;margin-top:.15rem;flex-wrap:wrap;gap:.4rem}.auth-link-btn{background:none!important;border:none;color:#60a5fa;font-size:.75rem;font-weight:700;cursor:pointer;width:auto;padding:0;text-decoration:underline}.auth-link-btn:hover{color:#93c5fd}.btn-auth-action{width:100%;background:linear-gradient(135deg,#3b82f6,#1d4ed8);color:#fff;font-weight:800;border:none;cursor:pointer;padding:.78rem;border-radius:.65rem;box-shadow:0 4px 15px rgba(59,130,246,.3);font-size:.88rem}.btn-cancel{background:transparent;border:1px solid var(--border);color:var(--muted);cursor:pointer;font-weight:600}.pw-meter{display:flex;flex-direction:column;gap:.25rem;background:rgba(0,0,0,.25);border:1px solid var(--border);border-radius:.55rem;padding:.5rem .65rem;margin-top:.25rem}.pw-rule{font-size:.68rem;font-weight:600;color:#94a3b8;display:flex;align-items:center;gap:.35rem}.pw-rule.valid{color:#4ade80}.pw-rule.valid::before{content:"✓";color:#22c55e;font-weight:900}.pw-rule.invalid::before{content:"✕";color:#ef4444;font-weight:900}.key-box-display{background:rgba(59,130,246,.1);border:1px dashed rgba(59,130,246,.4);padding:.85rem;border-radius:.65rem;font-family:monospace;font-size:1.05rem;font-weight:800;color:#93c5fd;text-align:center;letter-spacing:.08em;word-break:break-all;user-select:all}
+</style></head><body><div id="headerUserLabel" style="display:none"></div><div class="auth-overlay" id="authOverlay" style="display: flex;">
+<!-- 1. LOGIN PANE -->
+<div class="auth-card" id="authLoginCard">
+<div class="auth-title-row">
+<div class="auth-logo-badge">🔐</div>
+<div class="auth-title">Security Authentication</div>
+<div class="auth-subtitle">Log in to your Smart Budget Tracker</div>
+</div>
+<div class="auth-tabs">
+<button class="auth-tab active" onclick="switchAuthTab('password')" type="button">Password</button>
+<button class="auth-tab" onclick="switchAuthTab('pin')" type="button">PIN (4-6 Digits)</button>
+</div>
+<div class="auth-error" id="authErrorMsg"></div>
+<!-- Password Login Form -->
+<form class="auth-pane active" id="pwdLoginForm" onsubmit="handlePasswordLogin(event)">
+<div class="auth-field">
+<label for="loginUserId">User ID</label>
+<input autocomplete="username" id="loginUserId" placeholder="Enter User ID" required="" type="text"/>
+</div>
+<div class="auth-field">
+<label for="loginPassword">Password</label>
+<input autocomplete="current-password" id="loginPassword" placeholder="Enter Password" required="" type="password"/>
+</div>
+<button class="btn-auth-action" onclick="window.location.href='Tracker.html'" type="button">Login to Tracker</button>
+
+<div class="auth-links">
+<button class="auth-link-btn" onclick="openForgotPasswordModal()" type="button">Forgot Password / PIN?</button>
+</div>
+</form>
+<!-- PIN Login Form -->
+<form class="auth-pane" id="pinLoginForm" onsubmit="handlePinLogin(event)">
+<div class="auth-field">
+<label for="pinLoginUserId">User ID</label>
+<input autocomplete="username" id="pinLoginUserId" placeholder="Enter User ID" required="" type="text"/>
+</div>
+<div class="auth-field">
+<label for="loginPin">Security PIN</label>
+<input autocomplete="current-password" id="loginPin" inputmode="numeric" maxlength="6" pattern="[0-9]{4,6}" placeholder="4 - 6 Digit PIN" required="" type="password"/>
+</div>
+<button class="btn-auth-action" onclick="window.location.href='Tracker.html'" type="button">Verify PIN &amp; Unlock</button>
+<div class="auth-links">
+<button class="auth-link-btn" onclick="openForgotPasswordModal()" type="button">Forgot Password / PIN?</button>
+</div>
+</form>
+</div>
+<!-- 2. FIRST-TIME SETUP PANE -->
+<div class="auth-card" id="authSetupCard" style="display: none;">
+<div class="auth-title-row">
+<div class="auth-logo-badge">🛡️</div>
+<div class="auth-title">Create Master Account</div>
+<div class="auth-subtitle">Configure your ID, Password, PIN &amp; Master Recovery Key</div>
+</div>
+<div class="auth-error" id="authSetupErrorMsg"></div>
+<form id="authSetupForm" onsubmit="handleAccountSetup(event)" style="display:flex; flex-direction:column; gap:0.75rem;">
+<div class="auth-field">
+<label for="setupUserId">New User ID</label>
+<input autocomplete="username" id="setupUserId" placeholder="e.g. admin or sathish" required="" type="text"/>
+</div>
+<div class="auth-field">
+<label for="setupPassword">Master Password</label>
+<input autocomplete="new-password" id="setupPassword" oninput="checkStrength(this.value, 'setupMeter')" placeholder="Min 8 chars, Upper, Number, Symbol" required="" type="password"/>
+<div class="pw-meter" id="setupMeter">
+<div class="pw-rule invalid" id="setupMeter-len">At least 8 characters</div>
+<div class="pw-rule invalid" id="setupMeter-upper">At least one uppercase letter (A-Z)</div>
+<div class="pw-rule invalid" id="setupMeter-num">At least one number (0-9)</div>
+<div class="pw-rule invalid" id="setupMeter-special">At least one special character (!@#$%^&amp;*)</div>
+</div>
+</div>
+<div class="auth-field">
+<label for="setupPin">Quick Login PIN</label>
+<input id="setupPin" inputmode="numeric" maxlength="6" pattern="[0-9]{4,6}" placeholder="4 to 6 Digits" required="" type="password"/>
+</div>
+<div class="auth-field">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+<label for="setupMasterKey" style="margin-bottom: 0;">Master Recovery Key</label>
+<button class="auth-link-btn" onclick="generateRandomKey()" style="font-size: 0.68rem;" type="button">⚡ Generate Random</button>
+</div>
+<input id="setupMasterKey" placeholder="Click generate or enter secret key" required="" type="text"/>
+<span style="font-size: 0.68rem; color: #93c5fd; line-height: 1.35; display: block; margin-top: 0.25rem;">
+            🔒 <strong>Zero-Knowledge Protection:</strong> Only the cryptographic hash of this key is saved. You will download an offline kit in the next step.
+          </span>
+</div>
+<button class="btn-auth-action" style="margin-top: 0.35rem;" type="submit">Save &amp; Protect App</button>
+</form>
+</div>
+<!-- 3. ONE-TIME EMERGENCY KIT DOWNLOAD CONFIRMATION -->
+<div class="auth-card" id="authKitCard" style="display: none;">
+<div class="auth-title-row">
+<div class="auth-logo-badge">📥</div>
+<div class="auth-title">Emergency Recovery Kit</div>
+<div class="auth-subtitle">Save this file in a secure location</div>
+</div>
+<p style="font-size:0.75rem; color:var(--muted); line-height:1.45; text-align:center;">
+        This key is <strong>never stored in plain text</strong> inside the browser. If you lose this key and forget your password, your credentials cannot be reset.
+      </p>
+<div class="key-box-display" id="kitKeyDisplay">MASTER-KEY</div>
+<div style="display: flex; flex-direction: column; gap: 0.5rem; margin-top: 0.25rem;">
+<button class="btn-auth-action" onclick="downloadRecoveryKit()" type="button">📥 Download Recovery Kit (.txt)</button>
+<button class="btn-cancel" onclick="finishSetupAndEnterApp()" style="width: 100%; padding: 0.75rem;" type="button">I Have Saved It — Continue to App</button>
+</div>
+</div>
+<!-- 4. FORGOT / EDIT PASSWORD USING MASTER KEY MODAL -->
+<div class="auth-card" id="authForgotCard" style="display: none;">
+<div class="auth-title-row">
+<div class="auth-logo-badge">🔑</div>
+<div class="auth-title">Reset Credentials</div>
+<div class="auth-subtitle">Verify Master Key from your Emergency Kit to set a new password &amp; PIN</div>
+</div>
+<div class="auth-error" id="authForgotErrorMsg"></div>
+<form id="authForgotForm" onsubmit="handleResetWithMasterKey(event)" style="display:flex; flex-direction:column; gap:0.75rem;">
+<div class="auth-field">
+<label for="forgotUserId">User ID</label>
+<input autocomplete="username" id="forgotUserId" placeholder="Enter registered User ID" required="" type="text"/>
+</div>
+<div class="auth-field">
+<label for="forgotMasterKey">Master Recovery Key</label>
+<input id="forgotMasterKey" placeholder="Enter key from your Emergency Kit" required="" type="password"/>
+</div>
+<div class="auth-field">
+<label for="forgotNewPassword">New Password</label>
+<input autocomplete="new-password" id="forgotNewPassword" oninput="checkStrength(this.value, 'forgotMeter')" placeholder="Min 8 chars, Upper, Number, Symbol" required="" type="password"/>
+<div class="pw-meter" id="forgotMeter">
+<div class="pw-rule invalid" id="forgotMeter-len">At least 8 characters</div>
+<div class="pw-rule invalid" id="forgotMeter-upper">At least one uppercase letter (A-Z)</div>
+<div class="pw-rule invalid" id="forgotMeter-num">At least one number (0-9)</div>
+<div class="pw-rule invalid" id="forgotMeter-special">At least one special character (!@#$%^&amp;*)</div>
+</div>
+</div>
+<div class="auth-field">
+<label for="forgotNewPin">New Security PIN</label>
+<input id="forgotNewPin" inputmode="numeric" maxlength="6" pattern="[0-9]{4,6}" placeholder="New 4-6 Digit PIN" required="" type="password"/>
+</div>
+<button class="btn-auth-action" style="margin-top: 0.25rem;" type="submit">Update Password &amp; PIN</button>
+<button class="btn-cancel" onclick="closeForgotModal()" style="width: 100%; padding: 0.75rem;" type="button">Cancel</button>
+</form>
+</div>
+<!-- 5. DEDICATED UPDATE MASTER KEY MODAL (IN-APP RE-AUTHENTICATION ONLY) -->
+<div class="auth-card" id="authUpdateKeyCard" style="display: none;">
+<div class="auth-title-row">
+<div class="auth-logo-badge">🛡️</div>
+<div class="auth-title">Rotate Master Key</div>
+<div class="auth-subtitle">Verify your password to set and download a new Master Key</div>
+</div>
+<div class="auth-error" id="authUpdateKeyErrorMsg"></div>
+<form onsubmit="handleUpdateMasterKey(event)" style="display:flex; flex-direction:column; gap:0.75rem;">
+<div class="auth-field">
+<label for="updateKeyUserId">User ID</label>
+<input id="updateKeyUserId" placeholder="Enter registered User ID" required="" type="text"/>
+</div>
+<div class="auth-field">
+<label for="updateKeyCurrentPass">Account Password</label>
+<input id="updateKeyCurrentPass" placeholder="Enter your current password" required="" type="password"/>
+</div>
+<div class="auth-field">
+<div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem;">
+<label for="updateKeyNewMaster" style="margin-bottom: 0;">New Master Recovery Key</label>
+<button class="auth-link-btn" onclick="generateRandomUpdateKey()" style="font-size: 0.68rem;" type="button">⚡ Generate Random</button>
+</div>
+<input id="updateKeyNewMaster" placeholder="Enter or generate new key" required="" type="text"/>
+</div>
+<button class="btn-auth-action" style="margin-top: 0.25rem;" type="submit">Save &amp; Download New Kit</button>
+<button class="btn-cancel" onclick="closeUpdateMasterKeyModal()" style="width: 100%; padding: 0.75rem;" type="button">Cancel</button>
+</form>
+</div>
+</div><script>// 1. IndexedDB Wrapper
+    const DB_NAME = "SmartBudgetTrackerDB";
+    const DB_VERSION = 1;
+    const STORE_NAME = "app_state";
+
+    let dbInstance = null;
+
+    function openDatabase() {
+      return new Promise((resolve, reject) => {
+        if (dbInstance) return resolve(dbInstance);
+
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+
+        request.onupgradeneeded = function(e) {
+          const db = e.target.result;
+          if (!db.objectStoreNames.contains(STORE_NAME)) {
+            db.createObjectStore(STORE_NAME, { keyPath: "key" });
+          }
+        };
+
+        request.onsuccess = function(e) {
+          dbInstance = e.target.result;
+          resolve(dbInstance);
+        };
+
+        request.onerror = function(e) {
+          console.error("IndexedDB error:", e.target.error);
+          reject(e.target.error);
+        };
+      });
+    }
+
+    async function setIDBItem(key, val) {
+      try {
+        const db = await openDatabase();
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, "readwrite");
+          const store = tx.objectStore(STORE_NAME);
+          store.put({ key: key, value: val });
+          tx.oncomplete = () => resolve(true);
+          tx.onerror = () => reject(tx.error);
+        });
+      } catch (err) {
+        localStorage.setItem(key, JSON.stringify(val));
+      }
+    }
+
+    async function getIDBItem(key) {
+      try {
+        const db = await openDatabase();
+        return new Promise((resolve) => {
+          const tx = db.transaction(STORE_NAME, "readonly");
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.get(key);
+          req.onsuccess = () => resolve(req.result ? req.result.value : null);
+          req.onerror = () => resolve(null);
+        });
+      } catch (err) {
+        const item = localStorage.getItem(key);
+        try {
+          return item ? JSON.parse(item) : null;
+        } catch (e) {
+          return null;
+        }
+      }
+    }
+
+    // ================= SECURE HASHING & ZERO-KNOWLEDGE AUTH ENGINE =================
+    async function hashString(str) {
+      const msgUint8 = new TextEncoder().encode(str);
+      const hashBuffer = await crypto.subtle.digest('SHA-256', msgUint8);
+      const hashArray = Array.from(new Uint8Array(hashBuffer));
+      return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+    }
+
+    function checkStrength(pw, meterId) {
+      const hasLen = pw.length >= 8;
+      const hasUpper = /[A-Z]/.test(pw);
+      const hasNum = /[0-9]/.test(pw);
+      const hasSpecial = /[!@#$%^&*(),.?":{}|<>]/.test(pw);
+
+      const elLen = document.getElementById(`${meterId}-len`);
+      const elUpper = document.getElementById(`${meterId}-upper`);
+      const elNum = document.getElementById(`${meterId}-num`);
+      const elSpecial = document.getElementById(`${meterId}-special`);
+
+      if (elLen) elLen.className = `pw-rule ${hasLen ? 'valid' : 'invalid'}`;
+      if (elUpper) elUpper.className = `pw-rule ${hasUpper ? 'valid' : 'invalid'}`;
+      if (elNum) elNum.className = `pw-rule ${hasNum ? 'valid' : 'invalid'}`;
+      if (elSpecial) elSpecial.className = `pw-rule ${hasSpecial ? 'valid' : 'invalid'}`;
+
+      return hasLen && hasUpper && hasNum && hasSpecial;
+    }
+
+    let activeUserSession = null;
+    let pendingKitData = null;
+
+    function generateKeyString() {
+      const array = new Uint8Array(12);
+      crypto.getRandomValues(array);
+      return Array.from(array, b => b.toString(36).toUpperCase()).join('').substring(0, 16).replace(/(.{4})/g, '$1-').slice(0, -1);
+    }
+
+    function generateRandomKey() {
+      const key = generateKeyString();
+      document.getElementById("setupMasterKey").value = key;
+    }
+
+    function generateRandomUpdateKey() {
+      const key = generateKeyString();
+      document.getElementById("updateKeyNewMaster").value = key;
+    }
+
+    async function verifyAuthStatus() {
+      const storedCreds = await getIDBItem("auth_credentials");
+      const overlay = document.getElementById("authOverlay");
+      const loginCard = document.getElementById("authLoginCard");
+      const setupCard = document.getElementById("authSetupCard");
+      const forgotCard = document.getElementById("authForgotCard");
+      const kitCard = document.getElementById("authKitCard");
+      const updateCard = document.getElementById("authUpdateKeyCard");
+
+      if (!storedCreds || !storedCreds.userId) {
+        overlay.style.display = "flex";
+        loginCard.style.display = "none";
+        setupCard.style.display = "flex";
+        forgotCard.style.display = "none";
+        kitCard.style.display = "none";
+        updateCard.style.display = "none";
+      } else {
+        const session = sessionStorage.getItem("sbt_active_session");
+        if (session && session === storedCreds.userId) {
+          activeUserSession = session;
+          overlay.style.display = "none";
+          document.getElementById("headerUserLabel").textContent = `Lock (${activeUserSession})`;
+        } else {
+          overlay.style.display = "flex";
+          loginCard.style.display = "flex";
+          setupCard.style.display = "none";
+          forgotCard.style.display = "none";
+          kitCard.style.display = "none";
+          updateCard.style.display = "none";
+          document.getElementById("loginUserId").value = storedCreds.userId || "";
+          document.getElementById("pinLoginUserId").value = storedCreds.userId || "";
+        }
+      }
+    }
+
+    function switchAuthTab(type) {
+      const isPwd = type === 'password';
+      document.querySelectorAll(".auth-tab")[0].classList.toggle("active", isPwd);
+      document.querySelectorAll(".auth-tab")[1].classList.toggle("active", !isPwd);
+      document.getElementById("pwdLoginForm").classList.toggle("active", isPwd);
+      document.getElementById("pinLoginForm").classList.toggle("active", !isPwd);
+      document.getElementById("authErrorMsg").classList.remove("show");
+    }
+
+    async function handlePasswordLogin(e) {
+      e.preventDefault();
+      const errBox = document.getElementById("authErrorMsg");
+      const userId = document.getElementById("loginUserId").value.trim();
+      const pwd = document.getElementById("loginPassword").value;
+
+      const storedCreds = await getIDBItem("auth_credentials");
+      if (!storedCreds) return;
+
+      const pwdHash = await hashString(pwd);
+
+      if (storedCreds.userId.toLowerCase() === userId.toLowerCase() && storedCreds.passwordHash === pwdHash) {
+        sessionStorage.setItem("sbt_active_session", storedCreds.userId);
+        activeUserSession = storedCreds.userId;
+        document.getElementById("authOverlay").style.display = "none";
+        document.getElementById("headerUserLabel").textContent = `Lock (${activeUserSession})`;
+        errBox.classList.remove("show");
+        document.getElementById("loginPassword").value = "";
+      } else {
+        errBox.textContent = "Invalid User ID or Password. Please try again.";
+        errBox.classList.add("show");
+      }
+    }
+
+    async function handlePinLogin(e) {
+      e.preventDefault();
+      const errBox = document.getElementById("authErrorMsg");
+      const userId = document.getElementById("pinLoginUserId").value.trim();
+      const pin = document.getElementById("loginPin").value.trim();
+
+      const storedCreds = await getIDBItem("auth_credentials");
+      if (!storedCreds) return;
+
+      const pinHash = await hashString(pin);
+
+      if (storedCreds.userId.toLowerCase() === userId.toLowerCase() && storedCreds.pinHash === pinHash) {
+        sessionStorage.setItem("sbt_active_session", storedCreds.userId);
+        activeUserSession = storedCreds.userId;
+        document.getElementById("authOverlay").style.display = "none";
+        document.getElementById("headerUserLabel").textContent = `Lock (${activeUserSession})`;
+        errBox.classList.remove("show");
+        document.getElementById("loginPin").value = "";
+      } else {
+        errBox.textContent = "Invalid User ID or PIN. Please try again.";
+        errBox.classList.add("show");
+      }
+    }
+
+    async function handleAccountSetup(e) {
+      e.preventDefault();
+      const errBox = document.getElementById("authSetupErrorMsg");
+      const userId = document.getElementById("setupUserId").value.trim();
+      const pwd = document.getElementById("setupPassword").value;
+      const pin = document.getElementById("setupPin").value.trim();
+      const masterKey = document.getElementById("setupMasterKey").value.trim();
+
+      if (userId.length < 3) {
+        errBox.textContent = "User ID must be at least 3 characters long.";
+        errBox.classList.add("show");
+        return;
+      }
+      if (!checkStrength(pwd, 'setupMeter')) {
+        errBox.textContent = "Password must fulfill all 4 strong password requirements.";
+        errBox.classList.add("show");
+        return;
+      }
+      if (!/^\d{4,6}$/.test(pin)) {
+        errBox.textContent = "PIN must be between 4 to 6 numbers.";
+        errBox.classList.add("show");
+        return;
+      }
+      if (masterKey.length < 4) {
+        errBox.textContent = "Master Recovery Key must be at least 4 characters long.";
+        errBox.classList.add("show");
+        return;
+      }
+
+      // SOLUTION 1: Zero-knowledge hashing. No plain text stored in IndexedDB.
+      const creds = {
+        userId: userId,
+        passwordHash: await hashString(pwd),
+        pinHash: await hashString(pin),
+        masterKeyHash: await hashString(masterKey),
+        createdAt: new Date().toISOString()
+      };
+
+      await setIDBItem("auth_credentials", creds);
+
+      // Present one-time recovery kit prompt
+      pendingKitData = { userId, masterKey };
+      document.getElementById("kitKeyDisplay").textContent = masterKey;
+      document.getElementById("authSetupCard").style.display = "none";
+      document.getElementById("authKitCard").style.display = "flex";
+    }
+
+    function downloadRecoveryKit() {
+      if (!pendingKitData) return;
+      const fileText = 
+`==================================================
+SMART BUDGET TRACKER - EMERGENCY RECOVERY KIT
+==================================================
+User ID           : ${pendingKitData.userId}
+Master Recovery Key: ${pendingKitData.masterKey}
+Created On        : ${new Date().toLocaleString('en-IN')}
+
+CRITICAL SECURITY NOTICE:
+- Only the cryptographic hash of your Master Recovery Key is saved inside the application.
+- The plain key cannot be viewed on the login screen or recovered from browser storage.
+- Store this file or print it out in a secure, private location.
+==================================================`;
+
+      const blob = new Blob([fileText], { type: "text/plain;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `BudgetTracker_RecoveryKit_${pendingKitData.userId}.txt`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function finishSetupAndEnterApp() {
+  if (!pendingKitData) return;
+  sessionStorage.setItem("sbt_active_session", pendingKitData.userId);
+  activeUserSession = pendingKitData.userId;
+  pendingKitData = null;
+
+  document.getElementById("authKitCard").style.display = "none";
+  document.getElementById("authOverlay").style.display = "none";
+  document.getElementById("headerUserLabel").textContent = `Lock (${activeUserSession})`;
+  
+  alert("Master Account configured and encrypted in IndexedDB!");
+  
+  // ADD THIS LINE BELOW TO ROUTE TO YOUR NETLIFY APP
+  window.location.href = "Tracker.html";
+}
+
+    function openForgotPasswordModal() {
+      document.getElementById("authLoginCard").style.display = "none";
+      document.getElementById("authForgotCard").style.display = "flex";
+      document.getElementById("authForgotErrorMsg").classList.remove("show");
+      document.getElementById("authForgotForm").reset();
+    }
+
+    function closeForgotModal() {
+      document.getElementById("authForgotCard").style.display = "none";
+      document.getElementById("authLoginCard").style.display = "flex";
+      document.getElementById("authErrorMsg").classList.remove("show");
+    }
+
+    function openUpdateMasterKeyModal() {
+      document.getElementById("authOverlay").style.display = "flex";
+      document.getElementById("authLoginCard").style.display = "none";
+      document.getElementById("authSetupCard").style.display = "none";
+      document.getElementById("authForgotCard").style.display = "none";
+      document.getElementById("authKitCard").style.display = "none";
+      document.getElementById("authUpdateKeyCard").style.display = "flex";
+      document.getElementById("authUpdateKeyErrorMsg").classList.remove("show");
+      if (activeUserSession) {
+        document.getElementById("updateKeyUserId").value = activeUserSession;
+      }
+    }
+
+    function closeUpdateMasterKeyModal() {
+      document.getElementById("authUpdateKeyCard").style.display = "none";
+      if (activeUserSession) {
+        document.getElementById("authOverlay").style.display = "none";
+      } else {
+        document.getElementById("authLoginCard").style.display = "flex";
+      }
+    }
+
+    async function handleUpdateMasterKey(e) {
+      e.preventDefault();
+      const errBox = document.getElementById("authUpdateKeyErrorMsg");
+      const userId = document.getElementById("updateKeyUserId").value.trim();
+      const pass = document.getElementById("updateKeyCurrentPass").value;
+      const newMaster = document.getElementById("updateKeyNewMaster").value.trim();
+
+      const creds = await getIDBItem("auth_credentials");
+      if (!creds) {
+        errBox.textContent = "No stored user found.";
+        errBox.classList.add("show");
+        return;
+      }
+
+      const passHash = await hashString(pass);
+
+      if (creds.userId.toLowerCase() !== userId.toLowerCase() || creds.passwordHash !== passHash) {
+        errBox.textContent = "Incorrect User ID or Password.";
+        errBox.classList.add("show");
+        return;
+      }
+
+      if (newMaster.length < 4) {
+        errBox.textContent = "Master Key must be at least 4 characters.";
+        errBox.classList.add("show");
+        return;
+      }
+
+      // SOLUTION 1: Store only the hash of the rotated key
+      delete creds.plainMasterKey;
+      creds.masterKeyHash = await hashString(newMaster);
+      creds.updatedAt = new Date().toISOString();
+
+      await setIDBItem("auth_credentials", creds);
+
+      // Offer immediate download kit for the new rotated key
+      pendingKitData = { userId, masterKey: newMaster };
+      document.getElementById("kitKeyDisplay").textContent = newMaster;
+      document.getElementById("authUpdateKeyCard").style.display = "none";
+      document.getElementById("authKitCard").style.display = "flex";
+    }
+
+    async function handleResetWithMasterKey(e) {
+      e.preventDefault();
+      const errBox = document.getElementById("authForgotErrorMsg");
+      const userId = document.getElementById("forgotUserId").value.trim();
+      const masterKey = document.getElementById("forgotMasterKey").value.trim();
+      const newPwd = document.getElementById("forgotNewPassword").value;
+      const newPin = document.getElementById("forgotNewPin").value.trim();
+
+      const storedCreds = await getIDBItem("auth_credentials");
+      if (!storedCreds) {
+        errBox.textContent = "No stored credentials found.";
+        errBox.classList.add("show");
+        return;
+      }
+
+      if (storedCreds.userId.toLowerCase() !== userId.toLowerCase()) {
+        errBox.textContent = "User ID does not match registered records.";
+        errBox.classList.add("show");
+        return;
+      }
+
+      const providedKeyHash = await hashString(masterKey);
+      if (storedCreds.masterKeyHash !== providedKeyHash) {
+        errBox.textContent = "Incorrect Master Recovery Key. Verification failed.";
+        errBox.classList.add("show");
+        return;
+      }
+
+      if (!checkStrength(newPwd, 'forgotMeter')) {
+        errBox.textContent = "New password must fulfill all 4 strong password requirements.";
+        errBox.classList.add("show");
+        return;
+      }
+
+      if (!/^\d{4,6}$/.test(newPin)) {
+        errBox.textContent = "PIN must be between 4 to 6 numbers.";
+        errBox.classList.add("show");
+        return;
+      }
+
+      storedCreds.passwordHash = await hashString(newPwd);
+      storedCreds.pinHash = await hashString(newPin);
+      storedCreds.updatedAt = new Date().toISOString();
+
+      await setIDBItem("auth_credentials", storedCreds);
+
+      alert("Credentials successfully updated! Please log in with your new password or PIN.");
+      closeForgotModal();
+    }
+
+    function lockApplication() {
+      sessionStorage.removeItem("sbt_active_session");
+      activeUserSession = null;
+      verifyAuthStatus();
+    }
+
+    
+document.addEventListener("DOMContentLoaded",()=>verifyAuthStatus());
+</script></body></html>
